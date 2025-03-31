@@ -1,0 +1,35 @@
+services:
+  jupyterhub:
+    build: 
+      context: ./jupyterhub
+      dockerfile: Dockerfile
+    image: jupyterhub
+    ports:
+      - "8000:8000"  # Changed from 8080:8080 to match JupyterHub's default port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jupyterhub_data:/data
+      - ./jupyterhub/jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py  # Explicitly mount config
+    networks:
+      - jupyterhub-network
+    user: root
+
+  jupyter-lab:
+    build:
+      context: ./jupyterlab
+      dockerfile: Dockerfile
+    image: jupyter-lab
+    networks:
+      - jupyterhub-network
+    volumes:
+      - "jupyterhub-user-data:/home/jovyan/work"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+
+volumes:
+  jupyterhub_data:
+  jupyterhub-user-data:
+
+networks:
+  jupyterhub-network:
+    driver: bridge
