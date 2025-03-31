@@ -5,14 +5,23 @@ services:
       dockerfile: Dockerfile
     image: jupyterhub
     ports:
-      - "8000:8000"  # Changed from 8080:8080 to match JupyterHub's default port
+      - "8000:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - jupyterhub_data:/data
-      - ./jupyterhub/jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py  # Explicitly mount config
+      - ./jupyterhub/jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
+      - ./notebooks:/notebooks
     networks:
-      - jupyterhub-network
+      jupyterhub-network:
+        aliases:
+          - jupyterhub
+    environment:
+      - DOCKER_NETWORK_NAME=jupyterhub-network
+      - JUPYTERHUB_API_TOKEN=super-secret  # Token pour le proxy HTTP
+      - CONFIGPROXY_AUTH_TOKEN=super-secret  # Même token
     user: root
+    container_name: jupyterhub
+    restart: unless-stopped
 
   jupyter-lab:
     build:
@@ -23,13 +32,20 @@ services:
       - jupyterhub-network
     volumes:
       - "jupyterhub-user-data:/home/jovyan/work"
+      - "./notebooks:/home/jovyan/work/notebooks"
     environment:
       - JUPYTER_ENABLE_LAB=yes
+    deploy:
+      replicas: 0
+    container_name: jupyter-lab-template
 
 volumes:
   jupyterhub_data:
+    driver: local
   jupyterhub-user-data:
+    driver: local
 
 networks:
   jupyterhub-network:
+    name: jupyterhub-network  # Force ce nom exact sans préfixe
     driver: bridge
