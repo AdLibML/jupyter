@@ -10,7 +10,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - jupyterhub_data:/data
       - ./jupyterhub/jupyterhub_config.py:/srv/jupyterhub/jupyterhub_config.py
-      - ./notebooks:/notebooks
     networks:
       jupyterhub-network:
         aliases:
@@ -28,13 +27,15 @@ services:
       context: ./jupyterlab
       dockerfile: Dockerfile
     image: jupyter-lab
+    user: root  # Ajouter cette ligne
     networks:
       - jupyterhub-network
     volumes:
       - "jupyterhub-user-data:/home/jovyan/work"
-      - "./notebooks:/home/jovyan/work/notebooks"
     environment:
       - JUPYTER_ENABLE_LAB=yes
+      - NB_UID=1000  # UID de l'utilisateur jovyan
+      - NB_GID=100   # GID du groupe users
     deploy:
       replicas: 0
     container_name: jupyter-lab-template

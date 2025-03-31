@@ -10,8 +10,8 @@ c.JupyterHub.authenticator_class = DummyAuthenticator
 c.DummyAuthenticator.password = "admin"
 c.Authenticator.allow_all = True
 # User list - use lists instead of sets to ensure proper serialization
-c.Authenticator.allowed_users = ["user1", "user2"]
-c.Authenticator.admin_users = ["user1"]
+c.Authenticator.allowed_users = ["gary", "nicho", "augusto"]
+c.Authenticator.admin_users = ["gary"]
 
 # Suppress the warning about no allow config
 c.Authenticator.any_allow_config = True
@@ -21,8 +21,9 @@ c.JupyterHub.admin_access = True
 
 # API tokens
 c.JupyterHub.api_tokens = {
-    "user1-token": "user1",
-    "user2-token": "user2",
+    "gary-token": "gary",
+    "nicho-token": "nicho",
+    "augusto-token": "augusto",
 }
 
 # Docker spawner config
@@ -35,9 +36,10 @@ network_name = os.environ.get("DOCKER_NETWORK_NAME", "jupyterhub-network")
 
 c.DockerSpawner.image = "jupyter-lab"
 c.DockerSpawner.remove_containers = True
+
+# Remplacer cette section
 c.DockerSpawner.volumes = {
-    'jupyterhub-user-{username}': '/home/jovyan/work',
-    os.path.join(os.getcwd(), 'notebooks'): '/home/jovyan/work/notebooks'
+    'jupyterhub-user-{username}': {'bind': '/home/jovyan/work', 'mode': 'rw'},
 }
 
 # Container name pattern - fix the formatting
@@ -54,8 +56,13 @@ c.DockerSpawner.extra_host_config = {
 # Environment variables for spawned containers
 c.DockerSpawner.environment = {
     'JUPYTER_ENABLE_LAB': 'yes',
-    'GRANT_SUDO': 'no',
+    'GRANT_SUDO': 'yes',  # Accorder sudo aux utilisateurs
+    'NB_UID': '1000',
+    'NB_GID': '100',
 }
+
+# Vous pouvez aussi faire démarrer le conteneur en tant que root
+c.DockerSpawner.container_user = 'root'  # Utilisez container_user au lieu de user
 
 # Set the notebook directory
 c.Spawner.notebook_dir = '/home/jovyan/work'
@@ -83,3 +90,9 @@ c.ConfigurableHTTPProxy.should_start = True
 # Important: assurez-vous que ces lignes sont activées
 c.Spawner.default_url = '/lab'
 c.Spawner.cmd = ['jupyter-labhub']
+
+# Ajouter ceci à la fin de votre fichier de configuration
+c.DockerSpawner.post_start_cmd = "chmod -R 777 /home/jovyan/work"
+
+c.DockerSpawner.mem_limit = '2G'
+c.DockerSpawner.cpu_limit = 2.0

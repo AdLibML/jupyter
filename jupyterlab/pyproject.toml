@@ -3,7 +3,6 @@ name = "jupyter-environment"
 version = "0.1.0"
 description = "Jupyter environment with data science packages"
 authors = ["Your Name <your.email@example.com>"]
-package-mode = false  # Ajouter cette ligne pour désactiver le mode package
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -13,9 +12,6 @@ pandas = "^2.2.3"
 numpy = "^2.2.4"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.3.1"
-black = "^23.3.0"
-isort = "^5.12.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
