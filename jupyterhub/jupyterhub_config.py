@@ -1,98 +1,70 @@
 c = get_config()
 
-# Basic config
-c.JupyterHub.ip = '0.0.0.0'
-c.JupyterHub.port = 8000
+# -- Basic JupyterHub settings --
+c.JupyterHub.ip            = '0.0.0.0'
+c.JupyterHub.port          = 8000
+c.JupyterHub.admin_access  = True
 
-# Authentication
+# -- Authentication --
 from jupyterhub.auth import DummyAuthenticator
 c.JupyterHub.authenticator_class = DummyAuthenticator
-c.DummyAuthenticator.password = "admin"
-c.Authenticator.allow_all = True
-# User list - use lists instead of sets to ensure proper serialization
-c.Authenticator.allowed_users = ["gary", "nicho", "augusto"]
-c.Authenticator.admin_users = ["gary"]
+c.DummyAuthenticator.password     = "admin"
+c.Authenticator.any_allow_config   = True
+c.Authenticator.allowed_users      = ["gary", "nicho", "augusto"]
+c.Authenticator.admin_users        = ["gary"]
 
-# Suppress the warning about no allow config
-c.Authenticator.any_allow_config = True
-
-# Admin access
-c.JupyterHub.admin_access = True
-
-# API tokens
+# -- API tokens (optionnel) --
 c.JupyterHub.api_tokens = {
-    "gary-token": "gary",
-    "nicho-token": "nicho",
-    "augusto-token": "augusto",
+    "gary-token":   "gary",
+    "nicho-token":  "nicho",
+    "augusto-token":"augusto",
 }
 
-# Docker spawner config
-import os
-from dockerspawner import DockerSpawner
-c.JupyterHub.spawner_class = DockerSpawner
+# -- Use KubeSpawner to launch per-user pods in Kubernetes --
+from kubespawner import KubeSpawner
+c.JupyterHub.spawner_class = KubeSpawner
 
-# Get the network name from environment variable or use default
-network_name = os.environ.get("DOCKER_NETWORK_NAME", "jupyterhub-network")
+# Namespace & service account where pods will be created
+c.KubeSpawner.namespace        = 'jupyterhub'
+c.KubeSpawner.service_account  = 'jupyterhub'
 
-c.DockerSpawner.image = "jupyter-lab"
-c.DockerSpawner.remove_containers = True
+# Image built locally in minikube / local cluster
+c.KubeSpawner.image            = "jupyter-lab:local"
+c.KubeSpawner.image_pull_policy = 'Never'
 
-# Remplacer cette section
-c.DockerSpawner.volumes = {
-    'jupyterhub-user-{username}': {'bind': '/home/jovyan/work', 'mode': 'rw'},
-}
+# Resource requests & limits
+c.KubeSpawner.cpu_guarantee = 0.5
+c.KubeSpawner.cpu_limit     = 2.0
+c.KubeSpawner.mem_guarantee = '1G'
+c.KubeSpawner.mem_limit     = '2G'
 
-# Container name pattern - fix the formatting
-c.DockerSpawner.name_template = "jupyter-{username}"
+# Persistent storage: auto-create PVCs named jupyterhub-user-{username}-extra
+c.KubeSpawner.user_storage_pvc_ensure = True
+c.KubeSpawner.user_storage_capacity   = '5Gi'
+c.KubeSpawner.pvc_name_template       = 'jupyterhub-user-{username}-extra'
+c.KubeSpawner.volumes = [{
+    'name': 'user-data',
+    'persistentVolumeClaim': {
+        'claimName': c.KubeSpawner.pvc_name_template
+    }
+}]
+c.KubeSpawner.volume_mounts = [{
+    'name':      'user-data',
+    'mountPath': '/home/jovyan/work'
+}]
 
-# IMPORTANT: Use the correct network name here
-c.DockerSpawner.network_name = network_name
-
-# Use the Docker host's network - also update the network mode here
-c.DockerSpawner.extra_host_config = {
-    'network_mode': network_name
-}
-
-# Environment variables for spawned containers
-c.DockerSpawner.environment = {
+# Environment variables in each spawned pod
+c.KubeSpawner.environment = {
     'JUPYTER_ENABLE_LAB': 'yes',
-    'GRANT_SUDO': 'yes',  # Accorder sudo aux utilisateurs
-    'NB_UID': '1000',
-    'NB_GID': '100',
+    'GRANT_SUDO':         'yes',
+    'NB_UID':             '1000',
+    'NB_GID':             '100'
 }
 
-# Vous pouvez aussi faire démarrer le conteneur en tant que root
-c.DockerSpawner.container_user = 'root'  # Utilisez container_user au lieu de user
-
-# Set the notebook directory
-c.Spawner.notebook_dir = '/home/jovyan/work'
-c.Spawner.default_url = '/lab'
+# Single-user server options
+c.Spawner.default_url   = '/lab'
+c.Spawner.notebook_dir  = '/home/jovyan/work'
+c.Spawner.cmd           = ['jupyter-labhub']
 
 # Debug logging
 c.JupyterHub.log_level = 'DEBUG'
-
-# Ensure data directory exists
-data_dir = "/data"
-os.makedirs(data_dir, exist_ok=True)
-
-# Store data in the mounted volume
-c.JupyterHub.cookie_secret_file = os.path.join(data_dir, 'jupyterhub_cookie_secret')
-c.JupyterHub.db_url = 'sqlite:///' + os.path.join(data_dir, 'jupyterhub.sqlite')
-
-# Configuration pour le proxy et routage des requêtes
-# IMPORTANT: Changed this from the literal {username} to use string formatting
-c.DockerSpawner.prefix = '/user/{username}'  # This is correct, DockerSpawner will replace {username}
-
-c.JupyterHub.hub_connect_ip = 'jupyterhub'
-c.ConfigurableHTTPProxy.api_url = 'http://jupyterhub:8001'
-c.ConfigurableHTTPProxy.should_start = True
-
-# Important: assurez-vous que ces lignes sont activées
-c.Spawner.default_url = '/lab'
-c.Spawner.cmd = ['jupyter-labhub']
-
-# Ajouter ceci à la fin de votre fichier de configuration
-c.DockerSpawner.post_start_cmd = "chmod -R 777 /home/jovyan/work"
-
-c.DockerSpawner.mem_limit = '2G'
-c.DockerSpawner.cpu_limit = 2.0
