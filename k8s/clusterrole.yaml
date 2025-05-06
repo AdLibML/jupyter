@@ -1,0 +1,41 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jupyterhub-spawner
+rules:
+- apiGroups: [""]
+  resources:
+    - pods
+    - pods/log
+    - persistentvolumeclaims
+    - services
+    - services/proxy
+    - events
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - delete
+    - patch
+    - update
+- apiGroups: ["batch","extensions"]
+  resources: ["jobs"]
+  verbs: ["create","delete","get","list","watch"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get","list","watch"]
+---
+# filepath: c:\Users\garyj\Code\jupyter\k8s\clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jupyterhub-spawner-binding
+subjects:
+- kind: ServiceAccount
+  name: jupyterhub
+  namespace: jupyterhub        # ← was jupyter-system, must match c.KubeSpawner.namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jupyterhub-spawner

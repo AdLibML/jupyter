@@ -1,9 +1,9 @@
 services:
   jupyterhub:
-    build: 
+    image: jupyterhub:local
+    build:
       context: ./jupyterhub
       dockerfile: Dockerfile
-    image: jupyterhub
     ports:
       - "8000:8000"
     volumes:

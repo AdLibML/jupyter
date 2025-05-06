@@ -1,24 +1,16 @@
-FROM quay.io/jupyter/base-notebook:latest
+FROM jupyterhub/k8s-singleuser-sample:4.2.0
 
 USER root
-# Install Poetry
-RUN pip install uv
+RUN pip install uv poetry
 
-# RUN pip install poetry && \
-#     poetry config virtualenvs.create false
-
-# Copy poetry configuration
 COPY pyproject.toml poetry.lock* /tmp/
 WORKDIR /tmp
 
-RUN uv pip install --system -r pyproject.toml
+# Configure Poetry to install into the system environment
+RUN poetry config virtualenvs.create false \
+ && poetry install --no-root
 
-# RUN poetry install --no-interaction --no-ansi --no-root
+ENV PATH="/usr/local/bin:${PATH}"
 
-# Switch back to notebook user
 USER ${NB_UID}
 WORKDIR ${HOME}
-
-# Jupyter will now run without password authentication
-# The authentication will be handled by JupyterHub instead
-CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''", "--NotebookApp.password=''"]

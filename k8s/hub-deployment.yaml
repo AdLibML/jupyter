@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyterhub
+  namespace: jupyterhub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jupyterhub
+  template:
+    metadata:
+      labels:
+        app: jupyterhub
+    spec:
+      serviceAccountName: jupyterhub
+      containers:
+      - name: hub
+        image: jupyter-hub:gary
+        imagePullPolicy: Never
+        ports:
+        - name: http
+          containerPort: 8000
+        volumeMounts:
+        - name: hub-data
+          mountPath: /data
+        - name: jhub-config
+          mountPath: /etc/jupyterhub/jupyterhub_config.py
+          subPath: jupyterhub_config.py
+      volumes:
+      - name: hub-data
+        persistentVolumeClaim:
+          claimName: jupyterhub-data
+      - name: jhub-config
+        configMap:
+          name: jhub-config

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy-public
+  namespace: jupyterhub
+spec:
+  selector:
+    app: jupyterhub      # si CHP tourne dans le même Pod que le Hub
+  ports:
+  - name: http
+    port: 80             # port externe
+    targetPort: 8000     # port où Configurable-HTTP-Proxy écoute
+  type: ClusterIP       # ou LoadBalancer/NodePort selon ton infra

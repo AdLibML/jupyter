@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jhub-config
+  namespace: jupyterhub
+data:
+  jupyterhub_config.py: |
+    c = get_config()
+
+    # DummyAuthenticator (testing)
+    from jupyterhub.auth import DummyAuthenticator
+    c.JupyterHub.authenticator_class = DummyAuthenticator
+    c.DummyAuthenticator.password    = "admin"
+    c.Authenticator.allowed_users     = ["gary","nicho","augusto"]
+    c.Authenticator.admin_users       = ["gary"]
+    c.JupyterHub.admin_access         = True
+
+    # Pre-defined API tokens
+    c.JupyterHub.api_tokens = {
+      "gary-token":    "gary",
+      "nicho-token":   "nicho",
+      "augusto-token": "augusto",
+    }
+
+    # Spawner settings
+    from kubespawner import KubeSpawner
+    c.JupyterHub.spawner_class = KubeSpawner
+    c.KubeSpawner.default_url       = '/lab'
+    c.KubeSpawner.image             = "jupyter-lab:local"
+    c.KubeSpawner.image_pull_policy = "Never"
+    c.KubeSpawner.storage_class     = "hostpath"
+    c.KubeSpawner.start_timeout     = 300
+    c.KubeSpawner.http_timeout      = 300
+    c.KubeSpawner.poll_interval     = 5
+
+    c.JupyterHub.log_level = "DEBUG"
